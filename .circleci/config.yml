@@ -1,0 +1,49 @@
+version: 2.1
+
+executors:
+  go-executor:
+    docker:
+      - image: cimg/go:1.24.2
+    working_directory: ~/project
+
+jobs:
+  gatekeeper-check:
+    executor: go-executor
+    steps:
+      - checkout
+
+      - run:
+          name: Run Go tests
+          command: |
+            echo "Running unit tests..."
+            go test -v ./...
+
+      - run:
+          name: Skip on main branch
+          command: |
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              echo "Skipping gatekeeper check: already on 'main' branch."
+              exit 0
+            fi
+
+      - run:
+          name: Trigger AI gatekeeper check
+          command: |
+            echo "Triggering AI Review Agent for comment reactions and patch check..."
+            STATUS_CODE=$(curl -s -w "%{http_code}" -o result.txt "$AI_REVIEW_AGENT_URL/check-reactions?repo=$REPO_NAME")
+            echo "Status Code: $STATUS_CODE"
+            echo "-------- Response --------"
+            cat result.txt || true
+            echo "--------------------------"
+
+            if [ "$STATUS_CODE" -ne 200 ]; then
+              echo "Gatekeeper failed: AI comments must be reviewed (reaction + patch update) before merging to main."
+              exit 1
+            fi
+
+            echo "All AI comments acknowledged. Proceeding."
+
+workflows:
+  review-merge-gatekeeper:
+    jobs:
+      - gatekeeper-check
