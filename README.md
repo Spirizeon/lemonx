@@ -55,13 +55,75 @@ CLOUDFLARE_API_KEY=your-api-key
 REDIS_HOST=localhost
 REDIS_PORT=6379
 TARGET_REPO=/path/to/the/repository/you/want/to/test
+WEBHOOK_PORT=3456
+WEBHOOK_SECRET=your-secret-here
 ```
 
-3. Run the platform:
+3. Start Redis (if not already running):
 
 ```bash
-npm run dev
+redis-server
 ```
+
+4. Run the platform:
+
+```bash
+# Local mode — runs agents on TARGET_REPO directly
+npm run dev
+
+# Webhook mode — listens for CircleCI triggers from any repo
+npm run webhook
+```
+
+## CircleCI Integration
+
+The webhook server lets any GitHub repo trigger AI test generation, execution, and fixing through CircleCI.
+
+### 1. Expose your local server
+
+CircleCI needs to reach your laptop. Use one of these:
+
+```bash
+# ngrok (recommended)
+ngrok http 3456
+# → gives you https://abc123.ngrok-free.app
+
+# Cloudflare Tunnel
+cloudflared tunnel --url http://localhost:3456
+```
+
+### 2. Configure target repository
+
+Copy `.circleci/example-repo-config.yml` into your target repo as `.circleci/config.yml`:
+
+```bash
+cp .circleci/example-repo-config.yml /path/to/target-repo/.circleci/config.yml
+```
+
+### 3. Set CircleCI environment variables
+
+In your target repo's CircleCI project settings, add:
+
+| Variable | Value |
+|---|---|
+| `LEMON_WEBHOOK_URL` | Your tunnel URL (e.g. `https://abc123.ngrok-free.app`) |
+| `LEMON_WEBHOOK_SECRET` | Must match `WEBHOOK_SECRET` in your `.env` |
+
+### 4. Trigger the pipeline
+
+Push to any branch (excluding `main` by default) and CircleCI will:
+
+1. Send a webhook payload with repo, branch, commit, and working directory
+2. Your local agents receive it and run the full generate → run → fix loop
+3. Results are logged to your local console and stored in Redis
+
+### Available workflows
+
+| Workflow | What it does |
+|---|---|
+| `ai-test-loop` | Full generate + run + fix cycle (default) |
+| `ai-generate-tests` | Generate tests only |
+| `ai-run-tests` | Run existing tests only |
 
 ## Tech Stack
 

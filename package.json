@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "start": "npx tsx src/index.ts"
+    "start": "npx tsx src/index.ts",
+    "webhook": "npx tsx src/webhook-server.ts"
   },
   "dependencies": {
     "@mastra/core": "latest",
@@ -11,6 +12,7 @@
     "@mastra/memory": "^1.12.0",
     "@mastra/rag": "latest",
     "dotenv": "latest",
+    "express": "^4.21.0",
     "ioredis": "^5.10.1",
     "vitest": "latest",
     "zod": "latest"

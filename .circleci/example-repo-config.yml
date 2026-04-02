@@ -1,3 +1,8 @@
+# Copy this file to your target repository as .circleci/config.yml
+# Then set the environment variables in CircleCI project settings:
+#   LEMON_WEBHOOK_URL  —  http://your-laptop-ip:3456 (or ngrok URL)
+#   LEMON_WEBHOOK_SECRET —  must match the WEBHOOK_SECRET in lemon.test .env
+
 version: 2.1
 
 executors:
@@ -17,7 +22,6 @@ jobs:
           command: |
             echo "Sending webhook to lemon.test agent server..."
             
-            # Build the payload
             PAYLOAD=$(jq -n \
               --arg repo "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" \
               --arg branch "$CIRCLE_BRANCH" \
@@ -27,7 +31,6 @@ jobs:
             
             echo "Payload: $PAYLOAD"
             
-            # Send webhook
             STATUS_CODE=$(curl -s -w "%{http_code}" -o /tmp/webhook_response.txt \
               -X POST "$LEMON_WEBHOOK_URL/webhook/test-and-fix" \
               -H "Content-Type: application/json" \
@@ -40,11 +43,11 @@ jobs:
             echo "--------------------------"
             
             if [ "$STATUS_CODE" -ne 200 ]; then
-              echo "❌ Webhook failed with status $STATUS_CODE"
+              echo "Webhook failed with status $STATUS_CODE"
               exit 1
             fi
             
-            echo "✅ Webhook accepted. Agents are working..."
+            echo "Webhook accepted. Agents are working..."
 
   ai-generate-tests:
     executor: node-executor
@@ -54,8 +57,6 @@ jobs:
       - run:
           name: Trigger AI test generation
           command: |
-            echo "Triggering test generation..."
-            
             PAYLOAD=$(jq -n \
               --arg repo "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" \
               --arg branch "$CIRCLE_BRANCH" \
@@ -73,11 +74,9 @@ jobs:
             cat /tmp/webhook_response.txt || true
             
             if [ "$STATUS_CODE" -ne 200 ]; then
-              echo "❌ Test generation failed"
+              echo "Test generation failed"
               exit 1
             fi
-            
-            echo "✅ Tests generated successfully"
 
   ai-run-tests:
     executor: node-executor
@@ -87,8 +86,6 @@ jobs:
       - run:
           name: Trigger AI test execution
           command: |
-            echo "Triggering test execution..."
-            
             PAYLOAD=$(jq -n \
               --arg repo "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" \
               --arg branch "$CIRCLE_BRANCH" \
@@ -106,13 +103,14 @@ jobs:
             cat /tmp/webhook_response.txt || true
             
             if [ "$STATUS_CODE" -ne 200 ]; then
-              echo "❌ Test execution failed"
+              echo "Test execution failed"
               exit 1
             fi
-            
-            echo "✅ Tests executed successfully"
 
 workflows:
   ai-test-and-fix:
     jobs:
-      - ai-test-loop
+      - ai-test-loop:
+          filters:
+            branches:
+              ignore: main
