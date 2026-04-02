@@ -21,10 +21,6 @@ services:
       - CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    volumes:
-      - .:/app
-    working_dir: /app
-    command: ["npx", "tsx", "src/index.ts"]
 
 volumes:
   redis_data:
