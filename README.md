@@ -96,7 +96,7 @@ Triggers on every push and pull request (except `main`).
 
 - **Language**: TypeScript (ES2020, NodeNext modules)
 - **AI Framework**: Mastra (`@mastra/core`, `@mastra/memory`, `@mastra/libsql`, `@mastra/rag`)
-- **LLM Providers**: Cloudflare Workers AI (Llama 3.3 70B)
+- **LLM Providers**: Cloudflare Workers AI (Qwen 30B)
 - **Test Framework**: vitest
 - **State Management**: Redis (ioredis) for results/analysis/patches, LibSQL for agent memory
 - **Schema Validation**: Zod
