@@ -211,3 +211,5 @@ console.log("\n🏁 Done.");
 console.log(`   Unit tests: ${unitResult.status} (${unitResult.iterations} iterations)`);
 console.log(`   Integration tests: ${integrationResult.status} (${integrationResult.iterations} iterations)`);
 console.log(`   E2E tests: ${e2eResult.status} (${e2eResult.iterations} iterations)`);
+
+process.exit(0);
