@@ -30,11 +30,40 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: \${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_KEY: \${{ secrets.CLOUDFLARE_API_KEY }}
         run: |
-          docker compose up --build --abort-on-container-exit --exit-code-from lemon
+          docker compose -f lemon-compose.yml up --build --abort-on-container-exit --exit-code-from lemon
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose -f lemon-compose.yml down -v
+`;
+
+const DOCKER_COMPOSE_YML = `services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  lemon:
+    image: delcagox/lemonx:latest
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - CLOUDFLARE_ACCOUNT_ID=\${CLOUDFLARE_ACCOUNT_ID}
+      - CLOUDFLARE_API_KEY=\${CLOUDFLARE_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    stop_grace_period: 5s
+
+volumes:
+  redis_data: 
 `;
 
 const SETUP_NOTICE = `
@@ -66,7 +95,6 @@ On every push/PR to a non-\`main\` branch, the workflow:
 4. Cleans up containers and volumes after completion
 
 The workflow file lives at \`.github/workflows/ai-test-loop.yml\`.
-
 `;
 
 function getReadmePath(cwd) {
@@ -93,7 +121,12 @@ function run() {
   fs.writeFileSync(workflowPath, WORKFLOW_YML, "utf8");
   console.log("Written .github/workflows/ai-test-loop.yml");
 
-  // 3. Update or create README
+  // 3. Write docker-compose file
+  const composePath = path.join(cwd, "lemon-compose.yml");
+  fs.writeFileSync(composePath, DOCKER_COMPOSE_YML, "utf8");
+  console.log("Written lemon-compose.yml");
+
+  // 4. Update or create README
   const readmePath = getReadmePath(cwd);
   const readmeExists = fs.existsSync(readmePath);
 
@@ -116,7 +149,7 @@ function run() {
   }
 
   console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Done. Next steps:
 
   1. Add your secrets to GitHub:
@@ -126,11 +159,11 @@ Done. Next steps:
      Settings -> Secrets and variables -> Actions
 
   2. Commit and push:
-     git add .github/workflows/ai-test-loop.yml README.md
+     git add .github/workflows/ai-test-loop.yml lemon-compose.yml README.md
      git commit -m "chore: add AI test loop workflow"
      git push
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `);
 }
 

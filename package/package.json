@@ -1,6 +1,6 @@
 {
   "name": "lemonx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Scaffold a GitHub Actions AI test-fix loop workflow into your repo",
   "type": "module",
   "bin": {
