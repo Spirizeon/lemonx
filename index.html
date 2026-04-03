@@ -1127,21 +1127,29 @@ gsap.from('.cta-banner h2, .cta-banner p, .cta-banner-btn', {
   scrollTrigger: { trigger: '.cta-banner', start: 'top 75%' }
 });
 
+
 // ── TERMINAL TYPEWRITER ──
 const terminalLines = [
-  { text: '> lemon.test init — analyzing codebase...', cls: 'cmd' },
-  { text: '> Detected: React 18 · Node.js 20 · PostgreSQL 15', cls: 'cmd' },
-  { text: '> Spawning unit-agent on /src/auth/**', cls: 'cmd' },
-  { text: '✓ 143 tests generated · 143 passed · 0 failed', cls: 'success' },
-  { text: '> Spawning security-agent...', cls: 'cmd' },
-  { text: '⚠ Potential SQL injection vector: /api/users?id=', cls: 'warn' },
-  { text: '> Patch suggestion queued in PR #47', cls: 'cmd' },
-  { text: '> Spawning e2e-agent: 12 user flows detected', cls: 'cmd' },
-  { text: '✓ All flows passed (2.3s avg)', cls: 'success' },
-  { text: '> Coverage report: 94.7% · Threshold: 80% ✓', cls: 'success' },
-  { text: '> All agents complete. Ready to merge.', cls: 'accent' },
+  { text: '└──╼ $ npx lemonx@latest', cls: 'cmd' },
+  { text: 'lemonx', cls: 'accent' },
+  { text: 'Created .github/workflows/', cls: 'success' },
+  { text: 'Written .github/workflows/ai-test-loop.yml', cls: 'success' },
+  { text: 'Written lemon-compose.yml', cls: 'success' },
+  { text: 'README already contains AI Test Loop section — skipping update.', cls: 'warn' },
+  { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls: 'accent' },
+  { text: 'Done. Next steps:', cls: 'accent' },
+  { text: '  1. Add your secrets to GitHub:', cls: 'cmd' },
+  { text: '     - CLOUDFLARE_ACCOUNT_ID', cls: 'cmd' },
+  { text: '     - CLOUDFLARE_API_KEY', cls: 'cmd' },
+  { text: '     Settings -> Secrets and variables -> Actions', cls: 'cmd' },
+  { text: '  2. Commit and push:', cls: 'cmd' },
+  { text: '     git add .github/workflows/ai-test-loop.yml lemon-compose.yml README.md', cls: 'cmd' },
+  { text: '     git commit -m "chore: add AI test loop workflow"', cls: 'cmd' },
+  { text: '     git push', cls: 'cmd' },
+  { text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', cls: 'accent' },
 ];
 
+  
 let terminalActive = false;
 const terminalBody = document.getElementById('terminal-body');
 
