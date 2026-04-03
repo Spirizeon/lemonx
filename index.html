@@ -289,9 +289,7 @@ footer::before{content:'';position:absolute;inset:0;background-image:linear-grad
     <a href="#" class="nav-logo">lemon.test</a>
     <div class="nav-links">
       <a href="#">Docs</a>
-      <a href="#">Pricing</a>
-      <a href="#">GitHub</a>
-      <a href="#">Sign In</a>
+      <!-- add product hunt link --> 
       <button class="nav-cta">Get Early Access</button>
     </div>
   <button class="nav-cta nav-mobile-cta">Early Access</button>
@@ -312,12 +310,12 @@ footer::before{content:'';position:absolute;inset:0;background-image:linear-grad
     <div class="ctas">
       <div class="npm-cmd" id="npm-cmd" title="Click to copy">
         <span class="npm-prompt">$</span>
-        <span class="npm-text">npm i lemontest</span>
+        <span class="npm-text">npx lemonx@latest</span>
         <span class="npm-copy" id="npm-copy-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         </span>
       </div>
-      <button class="btn-ghost">Watch Demo →</button>
+      <button class="btn-ghost">Find on Product Hunt→</button>
     </div>
     <div class="test-types">
       Unit<span>·</span>Integration<span>·</span>E2E<span>·</span>Security<span>·</span>Performance<span>·</span>Regression
@@ -756,7 +754,7 @@ document.querySelectorAll('button, a, .feature-card, .agent-card, .price-card, .
 const npmCmd = document.getElementById('npm-cmd');
 if (npmCmd) {
   npmCmd.addEventListener('click', () => {
-    navigator.clipboard.writeText('npx lemonx@latest init').then(() => {
+    navigator.clipboard.writeText('npx lemonx@latest').then(() => {
       npmCmd.classList.add('copied');
       setTimeout(() => npmCmd.classList.remove('copied'), 2000);
     });

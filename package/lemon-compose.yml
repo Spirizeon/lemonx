@@ -24,4 +24,4 @@ services:
     stop_grace_period: 5s
 
 volumes:
-  redis_data:
+  redis_data: 

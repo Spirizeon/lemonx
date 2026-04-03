@@ -1,0 +1,26 @@
+{
+  "name": "lemonx",
+  "version": "1.0.1",
+  "description": "Scaffold a GitHub Actions AI test-fix loop workflow into your repo",
+  "type": "module",
+  "bin": {
+    "lemonx": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "github-actions",
+    "ai",
+    "test",
+    "workflow",
+    "cloudflare",
+    "ci",
+    "scaffold"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

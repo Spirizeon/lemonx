@@ -1,0 +1,31 @@
+name: AI Test Loop
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches-ignore: [main]
+
+jobs:
+  ai-test-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: |
+          echo "Docker available: $(docker --version)"
+          echo "Docker Compose available: $(docker compose version)"
+
+      - name: Run AI test-fix loop
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+        run: |
+          docker compose -f lemon-compose.yml up --build --abort-on-container-exit --exit-code-from lemon
+
+      - name: Cleanup
+        if: always()
+        run: docker compose -f lemon-compose.yml down -v
