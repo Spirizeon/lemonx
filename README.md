@@ -41,7 +41,7 @@ Each agent is equipped with purpose-built tools:
 
 ## Quick Start
 
-### 1. Add Cloudflare Secrets
+### 1. Add Cloudflare and PAT as Secrets
 
 Go to your GitHub repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
 
@@ -49,6 +49,7 @@ Go to your GitHub repo → **Settings** → **Secrets and variables** → **Acti
 |---|---|
 | `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
 | `CLOUDFLARE_API_KEY` | Your Cloudflare API token |
+| `LEMONX` | GitHub Personal Access Token with `repo` scope (for creating PRs) |
 
 ### 2. Push to Any Branch
 
@@ -77,11 +78,11 @@ GitHub Actions Runner (ubuntu-latest)
    ├── Checkout your code
    ├── Redis (agent state)
    └── lemon.test agents
-        ├── testGeneratorAgent
-        ├── integrationGeneratorAgent
-        ├── e2eGeneratorAgent
-        ├── executorAgent
-        └── editorAgent
+         ├── testGeneratorAgent
+         ├── integrationGeneratorAgent
+         ├── e2eGeneratorAgent
+         ├── executorAgent
+         └── editorAgent
 ```
 
 ## Available Workflows
@@ -145,7 +146,7 @@ npm run test:e2e
 
 ## Documentation
 
-Full documentation is available at [lemon.test/docs](https://github.com/berzi/lemon/tree/main/docs):
+Full documentation is available at [spirizeon/lemonx/docs](https://github.com/spirizeon/lemonx/tree/main/docs):
 
 - [Getting Started](docs/guide/getting-started.md)
 - [How It Works](docs/guide/how-it-works.md)

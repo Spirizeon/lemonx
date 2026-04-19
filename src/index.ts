@@ -64,11 +64,34 @@ function logTestResult(testFile: string, passed: boolean, output: string, failur
 const TARGET_REPO = process.env.TARGET_REPO ?? process.cwd();
 const LEMON_WORKSPACE = process.env.LEMON_WORKSPACE ?? "/workspace";
 const MAX_ITERATIONS = 5;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN ?? "";
+const GITHUB_TOKEN = process.env.LEMONX ?? process.env.GITHUB_TOKEN ?? "";
 const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY ?? "";
 const GITHUB_REF = process.env.GITHUB_REF ?? "";
 const GITHUB_SHA = process.env.GITHUB_SHA ?? "";
 const PR_BRANCH = `lemon/test-fix-${Date.now()}`;
+
+function checkRequiredEnvVars() {
+  const missing: string[] = [];
+  
+  if (!process.env.CLOUDFLARE_ACCOUNT_ID) missing.push("CLOUDFLARE_ACCOUNT_ID");
+  if (!process.env.CLOUDFLARE_API_KEY) missing.push("CLOUDFLARE_API_KEY");
+  
+  const hasGitHubToken = process.env.LEMONX || process.env.GITHUB_TOKEN;
+  if (!hasGitHubToken) {
+    missing.push("LEMONX (GitHub PAT)");
+  }
+  
+  if (missing.length > 0) {
+    console.log(`\n${LOG_PREFIX} ⚠️  Missing required repository secrets:`);
+    missing.forEach(v => console.log(`   - ${v}`));
+    console.log(`\n${LOG_PREFIX} Add secrets at: Settings → Secrets and variables → Actions`);
+    console.log(`   - CLOUDFLARE_ACCOUNT_ID`);
+    console.log(`   - CLOUDFLARE_API_KEY`);
+    console.log(`   - LEMONX (Personal Access Token with 'repo' scope)\n`);
+  }
+}
+
+checkRequiredEnvVars();
 
 async function getChangedFiles(repoPath: string): Promise<string[]> {
   try {

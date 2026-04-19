@@ -24,8 +24,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
         run: |
-          docker compose up --build --abort-on-container-exit --exit-code-from lemon
+          docker compose -f lemon-compose.yml up --build --abort-on-container-exit --exit-code-from lemon
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose -f lemon-compose.yml down -v

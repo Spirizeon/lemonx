@@ -21,11 +21,15 @@ services:
       - CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - LEMONX=${LEMONX}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - GITHUB_REF=${GITHUB_REF}
       - GITHUB_SHA=${GITHUB_SHA}
       - TARGET_REPO=/workspace
+      - SKIP_TESTS=${SKIP_TESTS:-false}
+      - DEBUG=${DEBUG:-false}
+      - VERBOSE=${VERBOSE:-true}
     volumes:
       - .:/workspace
     stop_grace_period: 5s
