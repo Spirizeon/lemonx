@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+const CLI_PATH = path.join(__dirname, '..', 'index.js');
 const TEST_DIR = path.join(__dirname, 'test-workspace');
 
 beforeAll(() => {
@@ -18,7 +19,7 @@ afterAll(() => {
 describe('GitHub Actions Setup Script', () => {
   it('creates workflow file and docker compose', () => {
     // Run the script
-    execSync('node ../index.js', { stdio: 'inherit' });
+    execSync(`node ${CLI_PATH}`, { stdio: 'inherit' });
 
     // Verify workflow file
     expect(fs.existsSync('.github/workflows/ai-test-loop.yml')).toBe(true);

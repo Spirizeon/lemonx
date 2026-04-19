@@ -4,8 +4,6 @@
 
 The workflow was relying on `secrets.GITHUB_TOKEN` to create PRs via GitHub API. However, GitHub Actions automatically injects `GITHUB_TOKEN` into the container, which cannot be named starting with `GITHUB_` as a custom secret name in GitHub Actions.
 
-Additionally, for forked repositories, workflow permissions are restricted by default, causing issues when trying to push Docker images to GHCR.
-
 ## Solution
 
 Introduced a new environment variable `LEMONX` that accepts a GitHub Personal Access Token (PAT) for authenticating PR creation via GitHub API.
@@ -18,7 +16,6 @@ Introduced a new environment variable `LEMONX` that accepts a GitHub Personal Ac
 
 **2. `package/lemon-compose.yml`**
 - Changed `GITHUB_TOKEN` environment variable to `LEMONX`
-- Added `SKIP_TESTS` environment variable for testing PR creation without running tests
 
 **3. `package/.github/workflows/ai-test-loop.yml`**
 - Added `LEMONX: ${{ secrets.LEMONX }}` to pass the PAT to the container
@@ -39,18 +36,9 @@ Introduced a new environment variable `LEMONX` that accepts a GitHub Personal Ac
 ## How to Add
 
 1. Go to your repo → **Settings** → **Secrets and variables** → **Actions**
-2. Add `LEMONX` with a PAT that has `repo` scope
-
-## Testing
-
-Set `SKIP_TESTS=true` to test PR creation without generating tests:
-
-```bash
-docker compose -f lemon-compose.yml up
-```
+2. Add each secret listed above
 
 ## Notes
 
 - The PAT requires `repo` scope to create branches and PRs
 - `GITHUB_TOKEN` is still supported as a fallback for backwards compatibility
-- For forked repos, enable "Read and write permissions" in Settings → Actions → General → Workflow permissions
