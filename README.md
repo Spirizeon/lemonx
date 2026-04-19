@@ -1,4 +1,4 @@
-# lemon.test
+# LemonX
 
 > Your codebase. Zero blind spots.
 
