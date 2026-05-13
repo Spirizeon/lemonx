@@ -152,7 +152,7 @@ Full documentation is available at [spirizeon/lemonx/docs](https://github.com/sp
 - [How It Works](docs/guide/how-it-works.md)
 - [Architecture](docs/architecture/overview.md)
 - [API Reference](docs/reference/agents.md)
-- [GitHub Actions Deployment](docs/deployment/github-actions.md)
+- [GitHub Actions Deployment](docs/deployment/github-actions.md)..
 
 ## License
 
