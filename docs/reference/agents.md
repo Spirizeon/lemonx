@@ -1,10 +1,10 @@
 # Agents API
 
-Reference documentation for all AI agents in lemon.test.
+Reference documentation for all AI agents and the Mastra Workflow in lemon.test.
 
 ## Mastra Instance
 
-All agents are registered in a single Mastra instance:
+All agents and the workflow are registered in a single Mastra instance:
 
 ```typescript
 // src/mastra/index.ts
@@ -12,11 +12,11 @@ import { Mastra } from "@mastra/core/mastra";
 
 export const mastra = new Mastra({
   agents: {
-    testGeneratorAgent,
-    executorAgent,
+    researchTestAgent,
     editorAgent,
-    integrationGeneratorAgent,
-    e2eGeneratorAgent,
+  },
+  workflows: {
+    testFixWorkflow,
   },
 });
 ```
@@ -24,65 +24,32 @@ export const mastra = new Mastra({
 Access agents via:
 
 ```typescript
-const agent = mastra.getAgent("testGeneratorAgent");
+const agent = mastra.getAgent("researchTestAgent");
 const result = await agent.generate("your prompt");
+```
+
+Run workflows via:
+
+```typescript
+const workflow = mastra.getWorkflow("testFixWorkflow");
+const { runId, start } = await workflow.execute({
+  triggerData: { repoPath: "/path/to/repo" },
+});
 ```
 
 ---
 
-## testGeneratorAgent
+## researchTestAgent
 
 | Property | Value |
 |---|---|
-| **ID** | `testGeneratorAgent` |
+| **ID** | `researchTestAgent` |
 | **Model** | `cloudflare-workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
-| **Source** | `src/mastra/agents/testGeneratorAgent.ts` |
+| **Source** | `src/mastra/agents/researchTestAgent.ts` |
 
-**Tools**: `fetchAnalysisTool`, `readFileTool`, `writeFileTool`, `storeTestsTool`
+**Tools**: `fetchAnalysisTool`, `storeTestsTool`, `storeResultsTool`, `readFileTool`, `writeFileTool`, `runTestsTool`
 
-**Instructions Summary**: Expert test engineer that reads source code + Redis analysis, writes comprehensive vitest unit tests covering happy paths, edge cases, error cases, and known issues.
-
----
-
-## integrationGeneratorAgent
-
-| Property | Value |
-|---|---|
-| **ID** | `integrationGeneratorAgent` |
-| **Model** | `cloudflare-workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
-| **Source** | `src/mastra/agents/integrationGeneratorAgent.ts` |
-
-**Tools**: `fetchAnalysisTool`, `readFileTool`, `writeFileTool`, `storeTestsTool`
-
-**Instructions Summary**: Expert test engineer specializing in integration testing. Tests interactions between modules, API endpoints with real databases, service layer data flows, and cross-boundary error handling.
-
----
-
-## e2eGeneratorAgent
-
-| Property | Value |
-|---|---|
-| **ID** | `e2eGeneratorAgent` |
-| **Model** | `cloudflare-workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
-| **Source** | `src/mastra/agents/e2eGeneratorAgent.ts` |
-
-**Tools**: `fetchAnalysisTool`, `readFileTool`, `writeFileTool`, `storeTestsTool`
-
-**Instructions Summary**: Expert test engineer specializing in end-to-end testing. Tests complete user journeys, full API request/response cycles, multi-step workflows, and authentication flows from an external client perspective.
-
----
-
-## executorAgent
-
-| Property | Value |
-|---|---|
-| **ID** | `executorAgent` |
-| **Model** | `cloudflare-workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
-| **Source** | `src/mastra/agents/executorAgent.ts` |
-
-**Tools**: `runTestsTool`, `storeResultsTool`, `fetchAnalysisTool`
-
-**Instructions Summary**: Test execution agent that runs vitest, captures pass/fail status, full output, and individual test failures. Persists everything to Redis for the editor agent.
+**Instructions Summary**: Autonomous test engineer that researches source code via RAG analysis, determines the appropriate test type (unit/integration/E2E) from file content, generates comprehensive vitest tests, runs them, and stores results to Redis — all in a single call.
 
 ---
 
@@ -97,3 +64,36 @@ const result = await agent.generate("your prompt");
 **Tools**: `fetchResultsTool`, `fetchAnalysisTool`, `readFileTool`, `writeFileTool`, `listFilesTool`
 
 **Instructions Summary**: Senior code editor and debugger. Reads failing test results from Redis, analyzes failure messages, and applies minimal surgical fixes to source files only (never modifies test files).
+
+---
+
+## testFixWorkflow
+
+| Property | Value |
+|---|---|
+| **ID** | `testFixWorkflow` |
+| **Source** | `src/mastra/workflows/testFixWorkflow.ts` |
+
+A Mastra Workflow that orchestrates the full test generation → fix → PR pipeline.
+
+### Steps
+
+| Step | Type | Description |
+|---|---|---|
+| `discoverFiles` | Procedural | Scans target repo for `.ts`/`.js` source files |
+| `researchAndGenerate` | Agent call | Calls `researchTestAgent` per file (research → gen → run → store) |
+| `loop(checkAndFix)` | Loop (max 5) | Reads Redis results, calls `editorAgent` on failures, retests |
+| `createPR` | Procedural | Commits changes and opens a GitHub pull request |
+
+### Execution
+
+```typescript
+const workflow = mastra.getWorkflow("testFixWorkflow");
+const { runId, start } = await workflow.execute({
+  triggerData: {
+    repoPath: "/path/to/repo",        // required: path to target repository
+    githubToken: process.env.GITHUB_TOKEN, // optional: for PR creation
+    maxIterations: 5,                     // optional: default 5
+  },
+});
+```

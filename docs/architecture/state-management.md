@@ -19,11 +19,11 @@ REDIS_PORT=6379
 
 ### Code Analysis: `code_analysis:*`
 
-**Purpose**: Prior code analysis used as RAG (Retrieval-Augmented Generation) context by generator agents.
+**Purpose**: Prior code analysis used as RAG (Retrieval-Augmented Generation) context by researchTestAgent.
 
 **Written by**: External analysis process (not part of the core lemon.test loop)
 
-**Read by**: All generator agents via `fetchAnalysisTool`
+**Read by**: researchTestAgent via `fetchAnalysisTool`
 
 **Structure**:
 ```json
@@ -35,15 +35,15 @@ REDIS_PORT=6379
 }
 ```
 
-**Usage**: Generator agents fetch this before reading source files to understand the file's purpose and known issues, enabling them to write more targeted tests.
+**Usage**: researchTestAgent fetches this before reading source files to understand the file's purpose and known issues, enabling it to write more targeted tests.
 
 ---
 
-### Unit Tests: `unit_tests:*`
+### Test Metadata: `test_metadata:*`
 
-**Purpose**: Metadata about generated unit tests.
+**Purpose**: Metadata about generated tests.
 
-**Written by**: Generator agents via `storeTestsTool`
+**Written by**: researchTestAgent via `storeTestsTool`
 
 **Structure**:
 ```json
@@ -52,6 +52,7 @@ REDIS_PORT=6379
   "filePath": "src/services/auth.ts",
   "testFilePath": "src/__tests__/auth.test.ts",
   "testCode": "import { describe, it, expect } from 'vitest'...",
+  "testType": "unit",
   "generatedAt": "2024-01-15T10:30:00.000Z",
   "status": "pending"
 }
@@ -61,9 +62,9 @@ REDIS_PORT=6379
 
 ### Test Results: `test_results:*`
 
-**Purpose**: Test execution results — the primary communication channel between executorAgent and editorAgent.
+**Purpose**: Test execution results — the primary communication channel between researchTestAgent and editorAgent.
 
-**Written by**: executorAgent via `storeResultsTool`
+**Written by**: researchTestAgent via `storeResultsTool`
 
 **Read by**: editorAgent via `fetchResultsTool`
 
@@ -119,11 +120,11 @@ REDIS_PORT=6379
 │  code_analysis:hash1    ← RAG context (pre-loaded)          │
 │  code_analysis:hash2                                        │
 │                                                              │
-│  unit_tests:uuid1       ← Generated test metadata           │
-│  unit_tests:uuid2                                           │
+│  test_metadata:uuid1    ← Generated test metadata           │
+│  test_metadata:uuid2                                        │
 │                                                              │
 │  test_results:uuid1     ← Test execution results            │
-│  test_results:uuid2     ← (executorAgent → editorAgent)     │
+│  test_results:uuid2     ← (researchTestAgent → editorAgent) │
 │                                                              │
 │  code_patches:uuid1     ← Applied code fixes (audit log)    │
 │  code_patches:uuid2                                        │
@@ -132,16 +133,13 @@ REDIS_PORT=6379
 
 ## State Lifecycle
 
-### During Generation
+### During Research & Generation
 
-1. Generator agents fetch `code_analysis:*` for context
-2. Generator agents write tests to disk
-3. Generator agents store metadata to `unit_tests:*`
-
-### During Execution
-
-1. executorAgent runs vitest
-2. executorAgent stores results to `test_results:*` with iteration number
+1. researchTestAgent fetches `code_analysis:*` for context
+2. researchTestAgent writes tests to disk
+3. researchTestAgent runs tests with vitest
+4. researchTestAgent stores metadata to `test_metadata:*`
+5. researchTestAgent stores results to `test_results:*`
 
 ### During Fixing
 
@@ -149,6 +147,7 @@ REDIS_PORT=6379
 2. editorAgent reads failing source files
 3. editorAgent writes fixes to disk
 4. writeFileTool automatically logs patches to `code_patches:*`
+5. researchTestAgent retests and stores new results to `test_results:*`
 
 ### Between Iterations
 

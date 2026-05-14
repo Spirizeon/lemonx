@@ -1,10 +1,9 @@
 import { Mastra } from "@mastra/core/mastra";
-import { testGeneratorAgent } from "./agents/testGeneratorAgent";
-import { executorAgent } from "./agents/executorAgent";
+import { researchTestAgent } from "./agents/research-agent";
 import { editorAgent } from "./agents/editorAgent";
-import { integrationGeneratorAgent } from "./agents/integrationGeneratorAgent";
-import { e2eGeneratorAgent } from "./agents/e2eGeneratorAgent";
+import { testFixWorkflow } from "./workflows/testFixWorkflow";
 
 export const mastra = new Mastra({
-  agents: { testGeneratorAgent, executorAgent, editorAgent, integrationGeneratorAgent, e2eGeneratorAgent },
+  agents: { researchTestAgent, editorAgent },
+  workflows: { testFixWorkflow },
 });

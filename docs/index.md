@@ -4,7 +4,7 @@ layout: home
 hero:
   name: lemon.test
   text: Your codebase. Zero blind spots.
-  tagline: An agentic AI testing platform that autonomously generates, executes, and fixes unit, integration, and E2E tests for TypeScript/JavaScript codebases.
+  tagline: An agentic AI testing platform that autonomously generates, executes, and fixes tests for TypeScript/JavaScript codebases.
   actions:
     - theme: brand
       text: Get Started
@@ -19,7 +19,7 @@ hero:
 features:
   - icon: 🧠
     title: AI-Powered Test Generation
-    details: Specialized agents read your source code and autonomously write comprehensive vitest unit, integration, and E2E tests — no manual test writing required.
+    details: A research agent reads your source code, autonomously determines test types, and writes comprehensive vitest unit, integration, and E2E tests — no manual test writing required.
   - icon: 🔁
     title: Self-Healing Test Loop
     details: Tests run, failures are analyzed, and the editor agent applies source code fixes automatically. The loop iterates until everything passes.
@@ -43,7 +43,7 @@ Get up and running in minutes:
 git push origin feature/my-branch
 ```
 
-GitHub Actions will automatically run the AI test-fix loop.
+GitHub Actions will automatically run the AI test-fix workflow.
 
 ## How It Works
 
@@ -64,16 +64,14 @@ GitHub Actions will automatically run the AI test-fix loop.
 │        │                │           │
 │        ▼                ▼           │
 │  ┌───────────────────────────┐      │
-│  │       AI Agents           │      │
+│  │    testFixWorkflow        │      │
 │  │                           │      │
-│  │  testGeneratorAgent       │      │
-│  │  integrationGeneratorAgent│      │
-│  │  e2eGeneratorAgent        │      │
-│  │  executorAgent            │      │
+│  │  researchTestAgent        │      │
 │  │  editorAgent              │      │
 │  └───────────────────────────┘      │
 │                                     │
-│  Generate → Run → Fix → Repeat     │
+│  Research → Generate → Run → Fix   │
+│         → Repeat → PR              │
 └─────────────────────────────────────┘
 ```
 
@@ -81,7 +79,8 @@ GitHub Actions will automatically run the AI test-fix loop.
 
 | Concept | Description |
 |---|---|
-| **Agents** | Five specialized AI agents powered by Mastra, each with a distinct role in the test lifecycle |
+| **Agents** | Two specialized AI agents powered by Mastra: `researchTestAgent` (research + generate + execute) and `editorAgent` (fix source code) |
+| **Workflow** | `testFixWorkflow` orchestrates the full pipeline: discover → researchAndGenerate → loop(checkAndFix) → createPR |
 | **Tools** | Purpose-built file I/O, Redis operations, and test runner tools that agents use to interact with your codebase |
 | **Runner** | GitHub Actions runner — your code is checked out, Docker Compose spins up Redis + AI agents, results determine job success/failure |
 
