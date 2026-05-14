@@ -12,24 +12,31 @@ lemon.test is a multi-agent AI testing platform built on the Mastra framework. I
 │  │                    Entry Points                             │  │
 │  │                                                              │  │
 │  │  src/index.ts          src/webhook-server.ts                │  │
-│  │  (direct execution)    (Express server, legacy mode)         │  │
+│  │  (triggers workflow)   (Express server, legacy mode)         │  │
 │  └────────────┬───────────────────────────┬──────────────────┘  │
 │               │                           │                      │
 │               ▼                           ▼                      │
 │  ┌────────────────────────────────────────────────────────────┐  │
-│  │                   Mastra Orchestrator                       │  │
+│  │                 testFixWorkflow (Mastra Workflow)           │  │
 │  │                                                              │  │
-│  │  testGeneratorAgent  integrationGeneratorAgent              │  │
-│  │  e2eGeneratorAgent   executorAgent   editorAgent            │  │
-│  └────────────┬───────────────────────────┬──────────────────┘  │
-│               │                           │                      │
-│               ▼                           ▼                      │
+│  │  discoverFiles → researchAndGenerate → loop(checkAndFix)   │  │
+│  │                                             │               │  │
+│  │                                     ┌───────▼────────┐      │  │
+│  │                                     │  researchTest   │      │  │
+│  │                                     │  Agent          │      │  │
+│  │                                     └───────┬────────┘      │  │
+│  │                                     ┌───────▼────────┐      │  │
+│  │                                     │   editorAgent   │      │  │
+│  │                                     └────────────────┘      │  │
+│  └───────────────────────────┬──────────────────────────────┘  │
+│                              │                                  │
+│                              ▼                                  │
 │  ┌──────────────────────┐  ┌────────────────────────────────┐   │
 │  │       Tools           │  │         Redis                  │   │
 │  │                        │  │                                │   │
 │  │  File I/O:             │  │  code_analysis:*              │   │
-│  │  - readFileTool        │  │  unit_tests:*                 │   │
-│  │  - writeFileTool       │  │  test_results:*               │   │
+│  │  - readFileTool        │  │  test_results:*               │   │
+│  │  - writeFileTool       │  │  test_metadata:*              │   │
 │  │  - listFilesTool       │  │  code_patches:*               │   │
 │  │                        │  │                                │   │
 │  │  Runner:               │  │  (shared event log)            │   │
@@ -56,15 +63,21 @@ lemon.test is a multi-agent AI testing platform built on the Mastra framework. I
 
 ### AI Agents
 
-Five specialized agents powered by Mastra, each with a distinct role:
+Two specialized agents powered by Mastra, orchestrated by a Mastra Workflow:
 
 | Agent | Purpose | Model |
 |---|---|---|
-| `testGeneratorAgent` | Generates vitest unit tests | Cloudflare Workers AI |
-| `integrationGeneratorAgent` | Generates integration tests | Cloudflare Workers AI |
-| `e2eGeneratorAgent` | Generates E2E tests | Cloudflare Workers AI |
-| `executorAgent` | Runs tests, stores results | Cloudflare Workers AI |
-| `editorAgent` | Analyzes failures, fixes code | Cloudflare Workers AI |
+| `researchTestAgent` | Researches code, generates tests, runs them, stores results (autonomously determines test type) | Cloudflare Workers AI |
+| `editorAgent` | Analyzes failures, fixes source code | Cloudflare Workers AI |
+
+### testFixWorkflow
+
+A Mastra Workflow that orchestrates the full pipeline:
+
+1. **discoverFiles** — scans repo for source files
+2. **researchAndGenerate** — calls researchTestAgent per file (research → gen tests → run → store)
+3. **loop(checkAndFix)** — reads Redis results, calls editorAgent on failures, retests, loops up to 5 iterations
+4. **createPR** — commits changes and opens a GitHub PR
 
 ### Tools
 
@@ -78,18 +91,18 @@ Purpose-built tools that agents use to interact with the codebase:
 
 Redis serves as the shared event log and knowledge base:
 
-- **Code Analysis** — prior analysis used as RAG context for generators
+- **Code Analysis** — prior analysis used as RAG context for researchTestAgent
 - **Test Metadata** — generated tests with source file mappings
 - **Test Results** — pass/fail status, output, and failure details per iteration
 - **Code Patches** — every fix applied by the editor agent with descriptions
 
 ## Execution Flow
 
-1. **Discovery** — Scan target repo for source files matching each test type
-2. **Generation** — Each generator agent reads source code + analysis, writes tests
-3. **Execution** — executorAgent runs vitest, stores results in Redis
-4. **Fixing** — editorAgent reads failures, applies minimal source code fixes
-5. **Iteration** — Steps 3-4 repeat until all pass or max iterations reached
+1. **Discovery** — Scan target repo for source files
+2. **Research & Generate** — researchTestAgent reads source + analysis, writes tests, runs them
+3. **Fix Loop** — editorAgent reads failures, applies source code fixes, retests
+4. **Iteration** — Step 3 repeats until all pass or max iterations reached
+5. **PR Creation** — If all pass, commit and open a pull request
 
 ## Key Design Decisions
 
@@ -102,14 +115,15 @@ Agents communicate through Redis rather than calling each other directly because
 - **Replayability** — the entire session can be replayed from Redis data
 - **Observability** — external tools can monitor agent behavior in real-time
 
-### Why Specialized Agents Over One Generalist
+### Why Two Agents + Workflow Instead of Five Specialized Agents
 
-Five specialized agents produce better results than one general-purpose agent:
+The 2-agent + workflow architecture was chosen over the previous 5-agent design because:
 
-- Each agent has focused instructions tailored to its specific task
-- Tool sets are minimized to only what each agent needs
-- Prompts can be optimized independently for each role
-- Failures are easier to diagnose and fix
+- **Reduced complexity** — one agent handles the entire research→generate→execute cycle autonomously
+- **Fewer round-trips** — no need to coordinate between separate generator and executor agents
+- **Autonomous test typing** — the agent determines test type from file content, eliminating separate discovery pipelines
+- **Workflow orchestration** — Mastra Workflows provide built-in step sequencing, looping, and error handling, replacing manual orchestration code
+- **Easier debugging** — fewer agents means fewer failure points and simpler traceability
 
 ### Why vitest
 

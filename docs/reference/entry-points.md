@@ -4,7 +4,7 @@ lemon.test has three entry points, each serving a different execution mode.
 
 ## src/index.ts — Direct Execution
 
-**Purpose**: Main entry point for the machine runner mode. Runs the full test generation, execution, and fix loop directly.
+**Purpose**: Main entry point for the machine runner mode. Triggers the testFixWorkflow.
 
 **Execution**:
 ```bash
@@ -12,10 +12,9 @@ npx tsx src/index.ts
 ```
 
 **Flow**:
-1. Discovers source files for unit, integration, and E2E tests
-2. Generates tests using the three generator agents
-3. Runs the test-fix loop for each test type (up to 5 iterations)
-4. Prints a summary of results
+1. Discovers source files
+2. Runs testFixWorkflow (researchAndGenerate → loop(checkAndFix) → createPR)
+3. Prints a summary of results
 
 **Environment Variables**:
 | Variable | Default | Description |
@@ -25,16 +24,14 @@ npx tsx src/index.ts
 **Output**: Console logs with progress and a final summary:
 ```
 🏁 Done.
-   Unit tests: passed (2 iterations)
-   Integration tests: passed (1 iterations)
-   E2E tests: max_iterations (5 iterations)
+   Tests: passed (2 iterations)
 ```
 
 ---
 
 ## src/webhook-server.ts — Webhook Server
 
-**Purpose**: Express.js server that receives webhooks from CircleCI, clones target repos, and runs the test-fix loop. Legacy/alternative mode.
+**Purpose**: Express.js server that receives webhooks from CircleCI, clones target repos, and runs the testFixWorkflow. Legacy/alternative mode.
 
 **Execution**:
 ```bash
@@ -47,25 +44,25 @@ npx tsx src/webhook-server.ts
 
 #### GET /health
 
-Health check. Returns status and list of available agents.
+Health check. Returns status, list of available agents, and workflows.
 
 **Response**:
 ```json
 {
   "status": "ok",
   "agents": [
-    "testGeneratorAgent",
-    "executorAgent",
-    "editorAgent",
-    "integrationGeneratorAgent",
-    "e2eGeneratorAgent"
+    "researchTestAgent",
+    "editorAgent"
+  ],
+  "workflows": [
+    "testFixWorkflow"
   ]
 }
 ```
 
 #### POST /webhook/test-and-fix
 
-Full generate + run + fix loop for all test types. Synchronous — waits for completion.
+Full generate + run + fix workflow. Synchronous — waits for completion.
 
 **Request Body**:
 ```json
@@ -83,9 +80,8 @@ Full generate + run + fix loop for all test types. Synchronous — waits for com
   "repo": "owner/repo",
   "branch": "feature/my-branch",
   "commit": "abc123",
-  "unit": { "status": "passed", "iterations": 2, "files": 5 },
-  "integration": { "status": "passed", "iterations": 1, "files": 3 },
-  "e2e": { "status": "passed", "iterations": 1, "files": 2 },
+  "iterations": 2,
+  "files": 5,
   "changedFiles": ["src/__tests__/auth.test.ts", "src/services/auth.ts"],
   "pr": "https://github.com/owner/repo/pull/42"
 }
@@ -95,7 +91,7 @@ Full generate + run + fix loop for all test types. Synchronous — waits for com
 
 #### POST /webhook/generate-tests
 
-Generate unit tests only.
+Generate tests only (runs the researchAndGenerate step of testFixWorkflow).
 
 **Request Body**:
 ```json
@@ -105,14 +101,6 @@ Generate unit tests only.
   "files": ["src/services/auth.ts"]
 }
 ```
-
-#### POST /webhook/generate-integration-tests
-
-Generate integration tests only.
-
-#### POST /webhook/generate-e2e-tests
-
-Generate E2E tests only.
 
 #### POST /webhook/run-tests
 
@@ -168,7 +156,7 @@ npx lemonx init /path/to/repo
 
 **What it does**:
 1. Creates `.circleci/` directory if it doesn't exist
-2. Writes a CircleCI config with three jobs: `ai-test-loop`, `ai-generate-tests`, `ai-run-tests`
+2. Writes a CircleCI config with jobs for the test-fix workflow
 3. Skips if the config already contains lemonx integration
 
 **Output**: CircleCI config that runs on a CircleCI machine runner with lemon.test pre-installed.

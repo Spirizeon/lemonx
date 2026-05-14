@@ -1,127 +1,38 @@
 # Agents
 
-lemon.test uses five specialized AI agents built on the Mastra framework. All agents use Cloudflare Workers AI with the model `@cf/meta/llama-3.3-70b-instruct-fp8-fast`.
+lemon.test uses two specialized AI agents and one Mastra Workflow built on the Mastra framework. All agents use Cloudflare Workers AI with the model `@cf/meta/llama-3.3-70b-instruct-fp8-fast`.
 
-## Generator Agents
+## researchTestAgent
 
-### testGeneratorAgent
+**Purpose**: Combines research, test generation, and test execution into a single autonomous agent. Given a source file, it researches the code (via RAG analysis), generates appropriate vitest tests, runs them, and stores the results — all in one call.
 
-**Purpose**: Generates vitest unit tests for individual source files.
+The agent autonomously determines the test type (unit, integration, or E2E) based on the file's role in the codebase. Files containing route, service, or API patterns get integration/E2E tests; utility and pure logic files get unit tests.
 
 **Tools**:
 - `fetchAnalysisTool` — retrieves prior code analysis from Redis (RAG context)
-- `readFileTool` — reads the source file content
-- `writeFileTool` — saves the generated test file
 - `storeTestsTool` — persists test metadata to Redis
-
-**Output**: `src/__tests__/<filename>.test.ts`
-
-**Testing Coverage**:
-- Happy path (normal expected behavior)
-- Edge cases (empty input, nulls, boundary values)
-- Error cases (exceptions, invalid input)
-- Issues flagged in stored analysis
-
-**Source**: `src/mastra/agents/testGeneratorAgent.ts`
-
----
-
-### integrationGeneratorAgent
-
-**Purpose**: Generates vitest integration tests that verify interactions between multiple modules, services, and external dependencies.
-
-**Tools**:
-- `fetchAnalysisTool` — retrieves prior code analysis from Redis
-- `readFileTool` — reads the source file content
-- `writeFileTool` — saves the generated test file
-- `storeTestsTool` — persists test metadata to Redis
-
-**Output**: `tests/integration/<filename>.test.ts`
-
-**Testing Coverage**:
-- Interactions between multiple modules/services
-- API endpoints with real database connections
-- Service layer interactions and data flow
-- External integrations (databases, message queues, external APIs)
-- Data transformation pipelines
-- Authentication and authorization flows
-- Error handling across module boundaries
-
-**Guidelines**:
-- Test real interactions between components, not isolated units
-- Use setup/teardown hooks for shared resources
-- Mock only expensive or unreliable external services
-- Use real database connections when possible
-- Focus on data flow and state changes across boundaries
-- Clean up test data in afterAll hooks
-
-**Source**: `src/mastra/agents/integrationGeneratorAgent.ts`
-
----
-
-### e2eGeneratorAgent
-
-**Purpose**: Generates vitest end-to-end tests that verify complete user flows and system behavior from the outside.
-
-**Tools**:
-- `fetchAnalysisTool` — retrieves prior code analysis from Redis
-- `readFileTool` — reads source files, especially entry points and routes
-- `writeFileTool` — saves the generated test file
-- `storeTestsTool` — persists test metadata to Redis
-
-**Output**: `tests/e2e/<filename>.test.ts`
-
-**Testing Coverage**:
-- Full API request/response cycles with real server
-- Complete user workflows (signup → login → use feature → logout)
-- Multi-step processes and state transitions
-- Authentication and authorization end-to-end flows
-- Payment or transaction flows
-- Data lifecycle (create → read → update → delete)
-- Error recovery and edge case user journeys
-- Cross-feature interactions
-
-**Guidelines**:
-- Test from the perspective of an external user/client
-- Make real HTTP requests to the application
-- Set up test fixtures in beforeAll, clean up in afterAll
-- Each test should be a complete, independent user flow
-- Verify the full chain: request → processing → response → side effects
-- Test both successful flows and error/failure paths
-
-**Source**: `src/mastra/agents/e2eGeneratorAgent.ts`
-
----
-
-## Execution Agents
-
-### executorAgent
-
-**Purpose**: Runs vitest on generated test files and stores pass/fail results in Redis.
-
-**Tools**:
-- `runTestsTool` — executes vitest on a specific test file
 - `storeResultsTool` — persists test results to Redis
-- `fetchAnalysisTool` — retrieves prior code analysis (available but not primary)
+- `readFileTool` — reads the source file content
+- `writeFileTool` — saves the generated test file
+- `runTestsTool` — executes vitest on a specific test file
 
-**Responsibilities**:
-- Execute vitest with verbose output
-- Capture pass/fail status for each test
-- Collect full stdout/stderr output
-- Parse individual test failures with error messages
-- Store everything to Redis with iteration number
+**Workflow**:
+1. Fetch code analysis from Redis for RAG context
+2. Read the source file
+3. Determine test type based on file analysis
+4. Generate and write tests to the appropriate directory
+5. Run the tests with vitest
+6. Store test metadata and results to Redis
 
-**Output**: Test results stored to `test_results:*` keys in Redis
+**Output**: Generated test file + Redis entries for test metadata and results
 
-**Source**: `src/mastra/agents/executorAgent.ts`
+**Source**: `src/mastra/agents/researchTestAgent.ts`
 
 ---
 
-## Editor Agents
+## editorAgent
 
-### editorAgent
-
-**Purpose**: Reads failing test results from Redis and applies targeted code fixes to make tests pass.
+**Purpose**: Reads failing test results from Redis and applies targeted code fixes to make tests pass. Unchanged from the original architecture.
 
 **Tools**:
 - `fetchResultsTool` — retrieves test results from Redis
@@ -147,28 +58,18 @@ lemon.test uses five specialized AI agents built on the Mastra framework. All ag
 
 ---
 
-## Unused Agents
+## testFixWorkflow (Mastra Workflow)
 
-### orchestratorAgent
+**Purpose**: Orchestrates the full test generation → fix loop using a Mastra Workflow. Replaces the previous manual orchestration in `src/index.ts`.
 
-A supervisor agent that was designed to coordinate the full loop with LibSQL memory. Currently unused — the orchestration logic lives in `src/index.ts` instead.
+**Steps**:
 
-**Source**: `src/mastra/agents/orchestratorAgent.ts`
+1. **discoverFiles** (procedural step) — Scans the target repository for source files. Excludes `node_modules`, `__tests__`, `.d.ts`, `seeds/`, `migrations/`, `public/`. Passes the file list to the next step.
 
-### research-agent
+2. **researchAndGenerate** (calls researchTestAgent per file) — For each discovered file, calls `researchTestAgent` which handles research → test generation → test execution → storage to Redis in a single autonomous call.
 
-A standalone research agent using OpenAI GPT-5-mini. Not part of the testing pipeline.
+3. **loop(checkAndFix)** — Reads test results from Redis. If failures exist, calls `editorAgent` to fix the source code, then retests by calling `researchTestAgent` again. Loops until all tests pass or a maximum of 5 iterations is reached.
 
-**Source**: `src/mastra/agents/research-agent.ts`
+4. **createPR** (procedural step) — If all tests pass and changes were made, creates a GitHub branch, commits the changes, pushes, and opens a pull request using the GitHub API.
 
----
-
-## Agent Tool Matrix
-
-| Agent | fetchAnalysis | readFile | writeFile | runTests | storeResults | storeTests | fetchResults | listFiles |
-|---|---|---|---|---|---|---|---|---|
-| testGeneratorAgent | ✅ | ✅ | ✅ | | | ✅ | | |
-| integrationGeneratorAgent | ✅ | ✅ | ✅ | | | ✅ | | |
-| e2eGeneratorAgent | ✅ | ✅ | ✅ | | | ✅ | | |
-| executorAgent | ✅ | | | ✅ | ✅ | | | |
-| editorAgent | ✅ | ✅ | ✅ | | | | ✅ | ✅ |
+**Source**: `src/mastra/workflows/testFixWorkflow.ts`
